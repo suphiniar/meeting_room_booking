@@ -61,5 +61,202 @@
             border-radius:10px;
             border:none;
             font-size:16px;
-            background:#373952
+            background:#373952;
+            color:#fff;
+        }
+        .time-row {
+            display:flex;
+            gap:12px;
+            align-items:center;
+        }
+        .time-row input {
+            flex:1;
+        }
+        .btn-group {
+            display:flex;
+            gap:14px;
+            margin-top:30px;
+            flex-wrap:wrap;
+        }
+        .btn-group button {
+            flex:1;
+            min-width:140px;
+            padding:13px;
+            border:none;
+            border-radius:10px;
+            font-size:16px;
+            cursor:pointer;
+            transition: 0.2s;
+        }
+        .btn-group button:nth-child(1){background:#4285f4;color:#fff;}
+        .btn-group button:nth-child(2){background:#34a853;color:#fff;}
+        .btn-group button:nth-child(3){background:#555770;color:#fff;}
+        .btn-group button:hover{opacity:0.9;}
 
+        table {
+            width:100%;
+            border-collapse: collapse;
+            margin-top:12px;
+        }
+        th, td {
+            padding:14px 10px;
+            text-align:left;
+            border-bottom:1px solid #3a3a4f;
+        }
+        th {
+            color:#b8b8cc;
+            background:#2c2e42;
+        }
+        tr:hover {
+            background:#2c2e42;
+        }
+        .flash-msg {
+            color:#80ffff;
+            margin-bottom:20px;
+            padding:12px;
+            background:#223b4b;
+            border-radius:10px;
+        }
+        .occupied-box {
+            margin-top:16px;
+            padding:14px;
+            background:#31334d;
+            border-radius:10px;
+        }
+    </style>
+</head>
+<body>
+<div class="header-bar">
+    <h2>欢迎，{{session.username}}</h2>
+    <div>
+        {% if session.role == 'admin' %}
+            <a href="{{url_for('admin_page')}}">管理员后台</a>
+        {% endif %}
+        <a href="{{url_for('logout')}}">退出登录</a>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="flash-msg">
+            {% for m in messages %}
+                <p>{{m}}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<div class="card">
+    <h3>新建会议室预约</h3>
+    <form method="post" action="{{url_for('book')}}">
+        <div class="form-item">
+            <label>选择会议室</label>
+            <select id="roomSel" name="room_id" required>
+                {% for r in rooms %}
+                <option value="{{r.id}}">{{r.name}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-item">
+            <label>预约日期</label>
+            <input id="dateSel" type="date" name="date" required>
+        </div>
+        <div class="occupied-box">
+            <div>已占用时段：<span id="occupiedText">选择会议室和日期后自动加载</span></div>
+        </div>
+        <div class="form-item">
+            <label>预约时段</label>
+            <div class="time-row">
+                <input type="time" name="start_time" required>
+                <span>～</span>
+                <input type="time" name="end_time" required>
+            </div>
+        </div>
+        <div class="form-item">
+            <label>预约人姓名</label>
+            <input type="text" name="username" placeholder="请填写姓名" required>
+        </div>
+        <div class="form-item">
+            <label>所属部门/科室</label>
+            <input type="text" name="dept" placeholder="请填写部门" required>
+        </div>
+        <div class="form-item">
+            <label>会议事由</label>
+            <input type="text" name="reason" placeholder="简要说明会议用途" required>
+        </div>
+        <div class="btn-group">
+            <button type="submit">提交预约</button>
+            <button type="button" onclick="window.scrollTo(0,document.body.scrollHeight)">查看预约记录</button>
+            <button type="button" onclick="window.location.href='{{url_for('logout')}}'">退出登录</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h3>全部预约记录</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>会议室</th>
+                <th>预约日期</th>
+                <th>开始时间</th>
+                <th>结束时间</th>
+                <th>预约人</th>
+                <th>部门</th>
+                <th>会议事由</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in bookings %}
+            <tr>
+                <td>{{b.id}}</td>
+                <td>{{ b.room.name | default('会议室已删除') }}</td>
+                <td>{{b.date}}</td>
+                <td>{{b.start_time}}</td>
+                <td>{{b.end_time}}</td>
+                <td>{{b.user.username}}</td>
+                <td>{{b.dept}}</td>
+                <td>{{b.reason}}</td>
+                <td>
+                    {% if session.role == 'admin' or b.user_id == session.user_id %}
+                    <form action="{{url_for('cancel', booking_id=b.id)}}" method="post" style="margin:0;">
+                        <button type="submit" style="background:#e74c3c; border:none; padding:6px 10px; border-radius:6px; color:#fff; cursor:pointer;" onclick="return confirm('确认要取消这条预约吗？')">取消</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+const roomSel = document.getElementById('roomSel');
+const dateSel = document.getElementById('dateSel');
+const occupiedText = document.getElementById('occupiedText');
+
+// date输入框最小日期设为今天
+const today = new Date().toISOString().split('T')[0];
+dateSel.value = today;
+dateSel.min = today;
+
+async function loadOccupied() {
+    const rid = roomSel.value;
+    const d = dateSel.value;
+    const res = await fetch(`/get_occupied?room_id=${rid}&date=${d}`);
+    const data = await res.json();
+    if(data.occupied.length === 0){
+        occupiedText.textContent = "当日该会议室暂无预约";
+    }else{
+        const str = data.occupied.map(item => `${item.start} ~ ${item.end}`).join("；");
+        occupiedText.textContent = str;
+    }
+}
+roomSel.addEventListener('change', loadOccupied);
+dateSel.addEventListener('change', loadOccupied);
+loadOccupied();
+</script>
+</body>
+</html>
