@@ -1,1 +1,166 @@
 
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台｜会议室预约系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background:#1e1e2e;
+            color:#fff;
+            padding:28px;
+            max-width:1200px;
+            margin:0 auto;
+        }
+        .header-bar {
+            margin-bottom:30px;
+            padding-bottom:16px;
+            border-bottom:1px solid #3a3a4f;
+        }
+        .header-bar a {
+            color:#74b9ff;
+            text-decoration:none;
+            margin-right:18px;
+        }
+        .card {
+            background:#27293d;
+            padding:26px;
+            border-radius:18px;
+            margin-bottom:26px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.25);
+        }
+        h2 {
+            margin-bottom:14px;
+        }
+        h3 {
+            margin-bottom:20px;
+            color:#e2e2e2;
+        }
+        input {
+            padding:12px 14px;
+            border-radius:10px;
+            border:none;
+            font-size:16px;
+            background:#373952;
+            color:#fff;
+            width:320px;
+            margin-right:10px;
+        }
+        button {
+            padding:12px 20px;
+            background:#4285f4;
+            color:#fff;
+            border:none;
+            border-radius:10px;
+            cursor:pointer;
+        }
+        table {
+            width:100%;
+            border-collapse: collapse;
+            margin-top:10px;
+        }
+        th, td {
+            padding:14px 10px;
+            text-align:left;
+            border-bottom:1px solid #3a3a4f;
+        }
+        th {
+            color:#b8b8cc;
+            background:#2c2e42;
+        }
+        tr:hover {
+            background:#2c2e42;
+        }
+        .user-item {
+            padding:8px 0;
+            border-bottom:1px solid #3a3a4f;
+        }
+        .flash-msg {
+            color:#80ffff;
+            margin-bottom:20px;
+            padding:12px;
+            background:#223b4b;
+            border-radius:10px;
+        }
+    </style>
+</head>
+<body>
+<div class="header-bar">
+    <h2>管理员后台</h2>
+    <div>
+        <a href="{{url_for('index')}}">返回首页</a>
+        <a href="{{url_for('logout')}}">退出登录</a>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="flash-msg">
+            {% for m in messages %}
+                <p>{{m}}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<div class="card">
+    <h3>新增会议室</h3>
+    <form method="post" action="{{url_for('add_room')}}">
+        <input type="text" name="room_name" placeholder="填写会议室名称，例如：402" required>
+        <button type="submit">添加会议室</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>系统用户列表</h3>
+    {% for u in users %}
+        <div class="user-item">{{u.username}} — {{u.role}}</div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h3>全部预约记录</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>会议室</th>
+                <th>预约日期</th>
+                <th>开始时间</th>
+                <th>结束时间</th>
+                <th>预约人</th>
+                <th>部门</th>
+                <th>会议事由</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in bookings %}
+            <tr>
+                <td>{{b.id}}</td>
+                <td>{{ b.room.name | default('会议室已删除') }}</td>
+                <td>{{b.date}}</td>
+                <td>{{b.start_time}}</td>
+                <td>{{b.end_time}}</td>
+                <td>{{b.user.username}}</td>
+                <td>{{b.dept}}</td>
+                <td>{{b.reason}}</td>
+                <td>
+                    <form action="{{url_for('cancel', booking_id=b.id)}}" method="post" style="margin:0;">
+                        <button type="submit" style="background:#e74c3c; border:none; padding:6px 10px; border-radius:6px; color:#fff; cursor:pointer;" onclick="return confirm('管理员确认删除这条预约？')">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
