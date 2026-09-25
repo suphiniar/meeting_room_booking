@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会议室管理</title>
+    <style>
+        * {margin:0;padding:0;box-sizing: border-box;font-family: system-ui;}
+        body{background:#1e1e2e;color:#fff;padding:24px;}
+        header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+        .back{background:#4285f4;color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none;}
+        .panel{background:#27293d;padding:22px;border-radius:14px;margin-bottom:20px;max-width:600px;}
+        h3{margin-bottom:16px;}
+        .form-item{margin-bottom:14px;}
+        label{display:block;margin-bottom:4px;color:#cfcfcf;}
+        input{width:100%;padding:10px;border-radius:8px;border:none;background:#373952;color:#fff;}
+        button{padding:10px 16px;border:none;border-radius:8px;background:#4285f4;color:#fff;cursor:pointer;}
+        .room-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #444;}
+        .del-room{background:#dd3333;padding:6px 10px;border:none;border-radius:6px;color:#fff;cursor:pointer;}
+        .flash{background:#442222;color:#ffaaaa;padding:10px;border-radius:8px;margin-bottom:16px;max-width:600px;}
+    </style>
+</head>
+<body>
+<header>
+    <h2>管理员 · 会议室管理</h2>
+    <a class="back" href="{{url_for('index')}}">返回首页</a>
+</header>
+{% with messages = get_flashed_messages() %}
+    {% if messages %}<div class="flash">{% for m in messages %}<p>{{m}}</p>{% endfor %}</div>{% endif %}
+{% endwith %}
+<div class="panel">
+    <h3>新增会议室</h3>
+    <form method="POST">
+        <div class="form-item">
+            <label>会议室名称</label>
+            <input name="room_name" required>
+        </div>
+        <div class="form-item">
+            <label>地点</label>
+            <input name="location" required>
+        </div>
+        <div class="form-item">
+            <label>容纳人数</label>
+            <input type="number" name="capacity" min="1" required>
+        </div>
+        <button type="submit">添加会议室</button>
+    </form>
+</div>
+<div class="panel">
+    <h3>已有会议室列表</h3>
+    {% for r in all_rooms %}
+    <div class="room-item">
+        <span>{{r.name}}｜{{r.location}}｜容纳{{r.capacity}}人</span>
+        <form action="{{url_for('del_room', rid=r.id)}}" method="POST">
+            <button class="del-room" type="submit" onclick="return confirm('确定删除会议室？')">删除</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+</body>
+</html>

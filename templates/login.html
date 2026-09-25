@@ -1,16 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录｜会议室预约系统</title>
+    <title>登录</title>
     <style>
         * {
-            box-sizing: border-box;
             margin:0;
             padding:0;
-            font-family: system-ui, sans-serif;
+            box-sizing: border-box;
+            font-family: system-ui;
         }
         body {
             background:#1e1e2e;
@@ -19,89 +18,86 @@
             align-items:center;
             justify-content:center;
             min-height:100vh;
-            padding:20px;
         }
-        .login-card {
+        .box{
             background:#27293d;
             padding:32px;
-            border-radius:18px;
-            width:100%;
-            max-width:420px;
+            border-radius:16px;
+            width:360px;
         }
-        h2 {
+        h2{
+            margin-bottom:24px;
             text-align:center;
-            margin-bottom:28px;
         }
-        .form-item {
-            margin-bottom:20px;
+        .item{
+            margin-bottom:18px;
         }
-        .form-item label {
+        label{
             display:block;
-            margin-bottom:8px;
+            margin-bottom:6px;
             color:#cfcfcf;
         }
-        .form-item input {
+        input{
             width:100%;
-            padding:12px 14px;
-            border-radius:10px;
+            padding:12px;
+            border-radius:8px;
             border:none;
             background:#373952;
             color:#fff;
             font-size:16px;
         }
-        button {
+        button{
             width:100%;
-            padding:13px;
+            padding:12px;
             border:none;
-            border-radius:10px;
+            border-radius:8px;
             background:#4285f4;
             color:#fff;
             font-size:16px;
             cursor:pointer;
         }
-        .link {
-            margin-top:18px;
+        .tip{
+            margin-top:16px;
             text-align:center;
         }
-        .link a {
+        .tip a{
             color:#74b9ff;
             text-decoration:none;
         }
-        .flash-msg {
+        .flash{
             color:#ff8888;
-            margin-bottom:20px;
-            padding:12px;
-            background:#3b2222;
-            border-radius:10px;
+            margin-bottom:16px;
+            text-align:center;
         }
     </style>
 </head>
 <body>
-<div class="login-card">
-    <h2>会议室预约系统 - 登录</h2>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="flash-msg">
-                {% for m in messages %}
-                    <p>{{m}}</p>
-                {% endfor %}
+    <div class="box">
+        <h2>会议室预约系统 - 登录</h2>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash">
+                    {% for msg in messages %}
+                        <p>{{msg}}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <form method="post">
+            <div class="item">
+                <label>用户名</label>
+                <input name="username" required>
             </div>
-        {% endif %}
-    {% endwith %}
-    <form method="post">
-        <div class="form-item">
-            <label>用户名</label>
-            <input type="text" name="username" required>
+            <div class="item">
+                <label>密码</label>
+                <input name="password" type="password" required>
+            </div>
+            <button type="submit">登录</button>
+        </form>
+        <div class="tip">
+            没有账号？<a href="{{url_for('register')}}">去注册</a>
+            <p style="margin-top:10px; color:#aaa; font-size:14px;">忘记密码？请联系系统管理员重置密码</p>
         </div>
-        <div class="form-item">
-            <label>密码</label>
-            <input type="password" name="password" required>
-        </div>
-        <button type="submit">登录</button>
-    </form>
-    <div class="link">
-        <a href="{{url_for('register')}}">注册新账号</a>
     </div>
-</div>
 </body>
 </html>

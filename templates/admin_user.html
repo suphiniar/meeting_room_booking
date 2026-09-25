@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>用户管理</title>
+    <style>
+        * {
+            margin:0;
+            padding:0;
+            box-sizing: border-box;
+            font-family: system-ui;
+        }
+        body{
+            background:#1e1e2e;
+            color:#fff;
+            padding:24px;
+        }
+        header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:20px;
+        }
+        .back-btn{
+            background:#4285f4;
+            color:white;
+            padding:8px 12px;
+            border-radius:8px;
+            text-decoration:none;
+        }
+        table{
+            width:100%;
+            border-collapse: collapse;
+            background:#27293d;
+            border-radius:12px;
+            overflow:hidden;
+        }
+        th,td{
+            padding:14px;
+            text-align:left;
+            border-bottom:1px solid #373952;
+        }
+        th{
+            background:#343650;
+        }
+        button{
+            padding:5px 8px;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            font-size:13px;
+        }
+        .btn-setrole{
+            background:#3465d9;
+            color:#fff;
+            margin:2px;
+        }
+        .btn-del{
+            background:#dd3333;
+            color:#fff;
+        }
+        .btn-reset{
+            background:#229944;
+            color:#fff;
+        }
+        .pwd-input{
+            padding:5px;
+            border-radius:6px;
+            border:none;
+            background:#373952;
+            color:#fff;
+            width:120px;
+            margin-right:4px;
+        }
+        .btn-change{
+            background:#4285f4;
+            color:#fff;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h2>用户管理</h2>
+    <a class="back-btn" href="{{url_for('index')}}">返回首页</a>
+</header>
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div style="padding:10px;background:#442222;color:#ffaaaa;border-radius:8px;margin-bottom:16px;">
+            {% for msg in messages %}
+                <p>{{msg}}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+<table>
+    <tr>
+        <th>ID</th>
+        <th>用户名</th>
+        <th>角色</th>
+        <th>操作</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <td>{{user.id}}</td>
+        <td>{{user.username}}</td>
+        <td>{{user.role}}</td>
+        <td>
+            {% if user.id != current_user.id %}
+                <form style="display:inline" action="{{url_for('admin_user_setrole', uid=user.id, role='admin')}}" method="POST">
+                    <button class="btn-setrole" onclick="return confirm('确定提升为管理员？')">设管理员</button>
+                </form>
+                <form style="display:inline" action="{{url_for('admin_user_setrole', uid=user.id, role='user')}}" method="POST">
+                    <button class="btn-setrole" onclick="return confirm('确定降级为普通用户？')">设普通用户</button>
+                </form>
+                <form style="display:inline" action="{{url_for('admin_user_del', uid=user.id)}}" method="POST">
+                    <button class="btn-del" onclick="return confirm('确定删除该用户？')">删除</button>
+                </form>
+            {% endif %}
+
+            {# 其他管理员：隐藏密码控件；自己和普通用户：显示 #}
+            {% if not (user.role == 'admin' and user.id != current_user.id) %}
+                <form style="display:inline;margin-left:6px;" action="{{url_for('admin_change_pwd', uid=user.id)}}" method="POST">
+                    <input class="pwd-input" type="password" name="new_pwd" placeholder="新密码" required>
+                    <button class="btn-change" type="submit" onclick="return confirm('确认修改密码？')">改密码</button>
+                </form>
+                <form style="display:inline" action="{{url_for('admin_reset_pwd', uid=user.id)}}" method="POST">
+                    <button class="btn-reset" type="submit" onclick="return confirm('确认重置密码为123456？')">重置123456</button>
+                </form>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+</body>
+</html>
