@@ -12,12 +12,15 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-# 用户表
+# 用户角色说明
+# admin：唯一超级管理员，只有1个，可以管理所有用户、可以删除所有人预约
+# manager：普通管理员，不能管理用户角色，仅可删除自己、user预约，不能删admin/其他manager
+# user：普通用户，仅能删除自己预约
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
-    role = db.Column(db.String(20), default="user")  # admin / user
+    role = db.Column(db.String(20), default="user")
     bookings = db.relationship('Booking', backref='creator', lazy=True)
 # 会议室表
 class Room(db.Model):
@@ -36,7 +39,7 @@ class Booking(db.Model):
     booker_name = db.Column(db.String(80))
     department = db.Column(db.String(120))
     reason = db.Column(db.String(255))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # 这条预约是谁创建的
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -52,11 +55,12 @@ def is_time_overlap(s1, e1, s2, e2):
 def index():
     selected_room_id = request.args.get("room_id")
     selected_date = request.args.get("date")
+    today_iso = date.today().isoformat()
     rooms = Room.query.all()
     if not selected_room_id and rooms:
         selected_room_id = rooms[0].id
-    if not selected_date:
-        selected_date = date.today().isoformat()
+    if not selected_date or selected_date < today_iso:
+        selected_date = today_iso
     if request.method == "POST":
         room_id = request.form.get("room_id")
         book_date = request.form.get("book_date")
@@ -65,11 +69,17 @@ def index():
         booker_name_input = request.form.get("booker_name")
         department_input = request.form.get("department")
         reason_input = request.form.get("reason")
-        # 管理员代预约：如果是管理员，可以选择创建人；普通用户创建人固定是自己
         create_uid = current_user.id
+        # 只有admin超级管理员可以代所有人预约；manager只能代user预约
         if current_user.role == "admin" and request.form.get("create_user_id"):
             create_uid = request.form.get("create_user_id")
-        today_str = date.today().isoformat()
+        elif current_user.role == "manager" and request.form.get("create_user_id"):
+            target_user = User.query.get(request.form.get("create_user_id"))
+            if target_user and target_user.role == "user":
+                create_uid = request.form.get("create_user_id")
+            else:
+                flash("manager只能为普通用户代预约")
+                return redirect(url_for('index', room_id=room_id, date=book_date))
         now_dt = datetime.now()
         select_day = datetime.strptime(book_date, "%Y-%m-%d").date()
         select_start_dt = datetime.strptime(f"{book_date} {start_t}", "%Y-%m-%d %H:%M")
@@ -108,31 +118,49 @@ def index():
     day_bookings = []
     if selected_room_id and selected_date:
         day_bookings = Booking.query.filter_by(room_id=selected_room_id, book_date=selected_date).order_by(Booking.start_time).all()
-    all_users = User.query.all() if current_user.role == "admin" else []
+    # 代预约下拉列表：admin能看到全部用户；manager只能看到user；user看不到下拉
+    if current_user.role == "admin":
+        all_users = User.query.all()
+    elif current_user.role == "manager":
+        all_users = User.query.filter_by(role="user").all()
+    else:
+        all_users = []
     return render_template("index.html",
+                           today=today_iso,
                            rooms=rooms,
                            selected_room_id=selected_room_id,
                            selected_date=selected_date,
                            day_bookings=day_bookings,
                            all_users=all_users)
-# 删除预约
+# 删除预约权限核心逻辑
 @app.route('/del_booking/<int:bid>', methods=['POST'])
 @login_required
 def del_booking(bid):
-    if current_user.role != "admin":
-        flash("无管理员权限")
-        return redirect(url_for('index'))
     bk = Booking.query.get_or_404(bid)
+    creator = bk.creator
+    if current_user.role == "admin":
+        # 超级管理员admin：可以删除所有人预约
+        pass
+    elif current_user.role == "manager":
+        # manager：只能删自己的预约 或 创建者是user的预约
+        if not (bk.user_id == current_user.id or creator.role == "user"):
+            flash("你无权取消管理员（admin/manager）的预约！")
+            return redirect(url_for('index'))
+    else:
+        # user普通用户：只能删自己
+        if bk.user_id != current_user.id:
+            flash("你没有权限取消这条预约！")
+            return redirect(url_for('index'))
     db.session.delete(bk)
     db.session.commit()
-    flash("预约已删除")
+    flash("预约已取消")
     return redirect(url_for('index'))
-# ---------------------- 管理员：会议室管理 ----------------------
+# ---------------------- 会议室管理（admin和manager都可以） ----------------------
 @app.route('/admin_room', methods=['GET','POST'])
 @login_required
 def admin_room():
-    if current_user.role != "admin":
-        flash("只有管理员可以进入会议室管理页")
+    if current_user.role not in ["admin", "manager"]:
+        flash("权限不足")
         return redirect(url_for('index'))
     if request.method == "POST":
         name = request.form.get("room_name")
@@ -148,20 +176,20 @@ def admin_room():
 @app.route('/del_room/<int:rid>', methods=['POST'])
 @login_required
 def del_room(rid):
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "manager"]:
         flash("权限不足")
         return redirect(url_for('index'))
     r = Room.query.get_or_404(rid)
     db.session.delete(r)
     db.session.commit()
     flash("会议室已删除")
-    return redirect(url_for("admin_room"))
-# ---------------------- 管理员：全部预约（支持搜索筛选） ----------------------
+    return redirect(url_for('admin_room'))
+# ---------------------- 全部预约后台（admin和manager都可以进入） ----------------------
 @app.route('/admin_all_booking')
 @login_required
 def admin_all_booking():
-    if current_user.role != "admin":
-        flash("只有管理员可以查看全部预约")
+    if current_user.role not in ["admin", "manager"]:
+        flash("权限不足")
         return redirect(url_for('index'))
     room_id = request.args.get("f_room")
     s_date = request.args.get("f_date")
@@ -176,12 +204,12 @@ def admin_all_booking():
     all_booking = q.order_by(Booking.book_date, Booking.start_time).all()
     rooms = Room.query.all()
     return render_template("admin_all_booking.html", all_booking=all_booking, rooms=rooms)
-# ---------------------- 管理员：用户管理（升级/降级管理员、删除用户、重置密码） ----------------------
+# ---------------------- 用户管理【仅超级admin能访问】 ----------------------
 @app.route('/admin_user', methods=['GET','POST'])
 @login_required
 def admin_user():
     if current_user.role != "admin":
-        flash("权限不足")
+        flash("只有超级管理员可以管理用户")
         return redirect(url_for('index'))
     users = User.query.all()
     return render_template("admin_user.html", users=users)
@@ -192,11 +220,13 @@ def admin_user_setrole(uid, role):
         flash("权限不足")
         return redirect(url_for('admin_user'))
     user = User.query.get_or_404(uid)
+    # 禁止修改自己角色
     if user.id == current_user.id:
         flash("不能修改自己的权限！")
         return redirect(url_for('admin_user'))
-    if role not in ["admin", "user"]:
-        flash("参数错误")
+    # 只允许设置为manager、user，禁止创建新admin
+    if role not in ["manager", "user"]:
+        flash("参数错误，只能设置为普通管理员manager或普通用户user")
         return redirect(url_for('admin_user'))
     user.role = role
     db.session.commit()
@@ -216,7 +246,6 @@ def admin_user_del(uid):
     db.session.commit()
     flash("用户已删除")
     return redirect(url_for('admin_user'))
-# 重置密码为 123456：管理员可以改自己、普通用户，不能改其他管理员
 @app.route('/admin_reset_pwd/<int:uid>', methods=['POST'])
 @login_required
 def admin_reset_pwd(uid):
@@ -224,16 +253,13 @@ def admin_reset_pwd(uid):
         flash("权限不足")
         return redirect(url_for('admin_user'))
     user = User.query.get_or_404(uid)
-    # 禁止修改其他管理员，允许自己和普通用户
-    if user.role == "admin" and user.id != current_user.id:
-        flash("不允许修改其他管理员的密码！")
+    if user.id == current_user.id:
+        flash("不能重置自己密码！")
         return redirect(url_for('admin_user'))
     user.password = "123456"
     db.session.commit()
-    flash(f"用户【{user.username}】密码已重置为：123456，请通知用户修改")
+    flash(f"用户【{user.username}】密码已重置为：123456")
     return redirect(url_for('admin_user'))
-
-# 新增：自定义修改密码路由
 @app.route('/admin_change_pwd/<int:uid>', methods=['POST'])
 @login_required
 def admin_change_pwd(uid):
@@ -241,9 +267,6 @@ def admin_change_pwd(uid):
         flash("权限不足！")
         return redirect(url_for('admin_user'))
     user = User.query.get_or_404(uid)
-    if user.role == "admin" and user.id != current_user.id:
-        flash("不允许修改其他管理员的密码！")
-        return redirect(url_for('admin_user'))
     new_pwd = request.form.get("new_pwd")
     if not new_pwd:
         flash("密码不能为空！")
@@ -252,12 +275,11 @@ def admin_change_pwd(uid):
     db.session.commit()
     flash(f"用户【{user.username}】密码修改成功")
     return redirect(url_for('admin_user'))
-
-# ---------------------- 管理员：数据统计看板 ----------------------
+# ---------------------- 数据看板（admin和manager都可以） ----------------------
 @app.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "manager"]:
         flash("权限不足")
         return redirect(url_for('index'))
     today = date.today().isoformat()
@@ -265,7 +287,6 @@ def admin_dashboard():
     total_booking = Booking.query.count()
     total_user = User.query.count()
     total_room = Room.query.count()
-    # 每个会议室预约次数统计
     room_stat = db.session.query(Room.name, db.func.count(Booking.id)).outerjoin(Booking).group_by(Room.id).all()
     return render_template("admin_dashboard.html",
                            today_count=today_count,

@@ -106,8 +106,8 @@
         <td>{{user.role}}</td>
         <td>
             {% if user.id != current_user.id %}
-                <form style="display:inline" action="{{url_for('admin_user_setrole', uid=user.id, role='admin')}}" method="POST">
-                    <button class="btn-setrole" onclick="return confirm('确定提升为管理员？')">设管理员</button>
+                <form style="display:inline" action="{{url_for('admin_user_setrole', uid=user.id, role='manager')}}" method="POST">
+                    <button class="btn-setrole" onclick="return confirm('确定提升为普通管理员？')">设普通管理员</button>
                 </form>
                 <form style="display:inline" action="{{url_for('admin_user_setrole', uid=user.id, role='user')}}" method="POST">
                     <button class="btn-setrole" onclick="return confirm('确定降级为普通用户？')">设普通用户</button>
@@ -116,7 +116,6 @@
                     <button class="btn-del" onclick="return confirm('确定删除该用户？')">删除</button>
                 </form>
             {% endif %}
-
             {# 其他管理员：隐藏密码控件；自己和普通用户：显示 #}
             {% if not (user.role == 'admin' and user.id != current_user.id) %}
                 <form style="display:inline;margin-left:6px;" action="{{url_for('admin_change_pwd', uid=user.id)}}" method="POST">
