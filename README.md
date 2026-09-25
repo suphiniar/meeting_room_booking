@@ -78,3 +78,7 @@ python app.py
 3. 系统会在到期前一周给你的注册邮箱发提醒。
 4. 点击“Run until 1 month from today”后记得点击绿色按钮“Reload 3038913903.pythonanywhere.com”重新加载（重启 Web 服务）
 <img width="1307" height="517" alt="image" src="https://github.com/user-attachments/assets/52e7e98c-8427-409a-90bc-958479011a49" />
+<<<<<<< HEAD
+=======
+
+>>>>>>> b4f1495cd36f915ce190492b638f0048a188d73d
