@@ -1,1 +1,107 @@
 
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录｜会议室预约系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin:0;
+            padding:0;
+            font-family: system-ui, sans-serif;
+        }
+        body {
+            background:#1e1e2e;
+            color:#fff;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            min-height:100vh;
+            padding:20px;
+        }
+        .login-card {
+            background:#27293d;
+            padding:32px;
+            border-radius:18px;
+            width:100%;
+            max-width:420px;
+        }
+        h2 {
+            text-align:center;
+            margin-bottom:28px;
+        }
+        .form-item {
+            margin-bottom:20px;
+        }
+        .form-item label {
+            display:block;
+            margin-bottom:8px;
+            color:#cfcfcf;
+        }
+        .form-item input {
+            width:100%;
+            padding:12px 14px;
+            border-radius:10px;
+            border:none;
+            background:#373952;
+            color:#fff;
+            font-size:16px;
+        }
+        button {
+            width:100%;
+            padding:13px;
+            border:none;
+            border-radius:10px;
+            background:#4285f4;
+            color:#fff;
+            font-size:16px;
+            cursor:pointer;
+        }
+        .link {
+            margin-top:18px;
+            text-align:center;
+        }
+        .link a {
+            color:#74b9ff;
+            text-decoration:none;
+        }
+        .flash-msg {
+            color:#ff8888;
+            margin-bottom:20px;
+            padding:12px;
+            background:#3b2222;
+            border-radius:10px;
+        }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <h2>会议室预约系统 - 登录</h2>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-msg">
+                {% for m in messages %}
+                    <p>{{m}}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    <form method="post">
+        <div class="form-item">
+            <label>用户名</label>
+            <input type="text" name="username" required>
+        </div>
+        <div class="form-item">
+            <label>密码</label>
+            <input type="password" name="password" required>
+        </div>
+        <button type="submit">登录</button>
+    </form>
+    <div class="link">
+        <a href="{{url_for('register')}}">注册新账号</a>
+    </div>
+</div>
+</body>
+</html>
