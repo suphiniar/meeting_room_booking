@@ -48,13 +48,15 @@
 </div>
 <div class="panel">
     <h3>已有会议室列表</h3>
-    {% for r in all_rooms %}
+    {% for r in rooms %}
     <div class="room-item">
         <span>{{r.name}}｜{{r.location}}｜容纳{{r.capacity}}人</span>
         <form action="{{url_for('del_room', rid=r.id)}}" method="POST">
             <button class="del-room" type="submit" onclick="return confirm('确定删除会议室？')">删除</button>
         </form>
     </div>
+    {% else %}
+        <p style="color:#aaa;">暂无会议室</p>
     {% endfor %}
 </div>
 </body>
